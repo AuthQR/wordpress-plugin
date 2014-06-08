@@ -1,0 +1,23 @@
+#login{
+	width: 610px;
+}
+
+.login form{
+	padding-bottom: 30px;
+}
+
+.authqr-form-part {
+	float: left;
+}
+
+.authqr-main{
+	margin: 0 0 0 20px;
+	padding: 0 0 0 20px;
+	border-left: 1px solid #DDD;
+}
+
+#authqr{
+	width: 220px;
+	height: 220px;
+	background-color: #DDD;
+}
