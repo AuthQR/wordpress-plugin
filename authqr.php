@@ -29,7 +29,7 @@ class AuthQR {
 	}
 	
 	function add_resources_login(){
-		self::init();
+		self::init();          
 		wp_enqueue_script( 'authqr-login', plugins_url( 'js/authqr.login.js' , __FILE__ ), array('jquery','authqr-core') );
 		wp_enqueue_style( 'authqr-login-form', plugins_url( 'css/authqr.login.css' , __FILE__ ) );
 	}
@@ -42,12 +42,26 @@ class AuthQR {
 		</div><?php
 	}
 	
-	function login_post(){
-		if( !is_user_logged_in() && !empty($_POST['authqr_code']) ){
-			$user = self::getUserId($_POST['authqr_code']);
+	/**
+	* Thanks to TBI Infotech: http://wordpress.stackexchange.com/a/151715/28742
+	*/
+	function check_login($user, $username, $password) {
+		global $wpdb;  
+		if(!is_user_logged_in() && !empty($_POST['authqr_code'])){
+			$auhtqr_user = self::getUserId($_POST['authqr_code']);
 			
-			global $wpdb;
-			$user_id = $wpdb->get_var( "SELECT user_id FROM $wpdb->usermeta WHERE meta_key='authqr_user' AND meta_value='$user'" );
+			$user_id = $wpdb->get_var( "SELECT user_id FROM $wpdb->usermeta WHERE meta_key='authqr_user' AND meta_value='$auhtqr_user'" );
+			$user = get_user_by('id', $user_id );
+
+			if ( !is_wp_error( $user ) ){
+				wp_clear_auth_cookie();
+				wp_set_current_user ( $user->ID );
+				wp_set_auth_cookie  ( $user->ID );
+
+				wp_safe_redirect( user_admin_url() );
+				exit();
+			}
+			return $user;
 		}
 	}
 
@@ -107,16 +121,23 @@ class AuthQR {
 	
 }
 
+// init
 add_action( 'admin_init', array('AuthQR', 'init') );
 
+// resources
 add_action( 'admin_enqueue_scripts', array('AuthQR', 'add_resources_admin') );
 add_action( 'login_enqueue_scripts', array('AuthQR', 'add_resources_login'), 1 );
 	
+// user form
 add_action('show_user_profile', array('AuthQR', 'user_form'));
 add_action('edit_user_profile', array('AuthQR', 'user_form'));
 
+// user save
 add_action('personal_options_update', array('AuthQR', 'update'));
 add_action('edit_user_profile_update', array('AuthQR', 'update'));
 
+// login form
 add_action('login_form', array('AuthQR', 'login_form'));
-add_action('template_redirect', array('AuthQR', 'login_post') );
+
+// login post
+add_filter('authenticate', array('AuthQR', 'check_login'), 10, 3);
